@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}إدارة الفروع{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">إدارة الفروع</h2>
+                    <p class="text-muted mb-0">عرض وإدارة فروع الشركة</p>
+                </div>
+                {% if current_user.is_admin %}
+                <div>
+                    <a href="{{ url_for('branches.add_branch') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> إضافة فرع جديد
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        {% for branch in branches %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="text-primary">
+                            <i class="bi bi-building fs-1"></i>
+                        </div>
+                        {% if current_user.is_admin %}
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ url_for('branches.edit_branch', branch_id=branch.id) }}">
+                                    <i class="bi bi-pencil"></i> تعديل
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form method="POST" action="{{ url_for('branches.delete_branch', branch_id=branch.id) }}"
+                                          onsubmit="return confirm('هل أنت متأكد من حذف هذا الفرع؟')" style="display: inline;">
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i class="bi bi-trash"></i> حذف
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <h5 class="card-title mb-2">{{ branch.name }}</h5>
+
+                    <!-- إحصائيات سريعة -->
+                    <div class="row text-center mb-3">
+                        <div class="col-6">
+                            <div class="border-end">
+                                <h6 class="mb-1 text-primary">{{ branch.get_all_products_with_quantities()|length }}</h6>
+                                <small class="text-muted">المنتجات</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <h6 class="mb-1 text-success">{{ "{:,.0f}".format(branch.get_total_stock_value()) }}</h6>
+                            <small class="text-muted">قيمة المخزون</small>
+                        </div>
+                    </div>
+
+                    <!-- أزرار الإجراءات -->
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('branches.branch_details', branch_id=branch.id) }}"
+                           class="btn btn-outline-primary">
+                            <i class="bi bi-eye"></i> عرض التفاصيل
+                        </a>
+                        <a href="{{ url_for('movements.add_movement') }}?destination_type=branch&destination_id={{ branch.id }}"
+                           class="btn btn-outline-success">
+                            <i class="bi bi-arrow-down"></i> تحويل منتجات للفرع
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="bi bi-building text-muted fs-1 mb-3"></i>
+                <h5 class="text-muted">لا توجد فروع</h5>
+                <p class="text-muted">ابدأ بإضافة فرع جديد لإدارة مخزونه</p>
+                {% if current_user.is_admin %}
+                <a href="{{ url_for('branches.add_branch') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> إضافة فرع جديد
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,474 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-fluid" dir="rtl">
+    <!-- رأس الصفحة -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="mb-1">حركة المنتجات</h3>
+            <p class="text-muted mb-0">تتبع وإدارة حركات المنتجات في النظام</p>
+            {% if current_user.is_admin() %}
+            <div class="alert alert-info alert-sm mt-2 mb-0">
+                <i class="bi bi-info-circle"></i>
+                <strong>ملاحظة للمدير:</strong> يمكنك حذف الحركات التي يقل عمرها عن 24 ساعة فقط. سيتم عكس تأثير الحركة على المخزون تلقائياً.
+            </div>
+            {% endif %}
+        </div>
+        <a href="{{ url_for('movements.add_movement') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> إضافة حركة جديدة
+        </a>
+    </div>
+
+    <!-- بطاقة الفلترة المحسنة -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white border-0">
+            <h6 class="mb-0">
+                <i class="bi bi-funnel"></i> خيارات الفلترة
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="get" id="filter-form">
+                <div class="row g-3">
+                    <!-- المنتج -->
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label fw-bold">المنتج</label>
+                        <select name="product_id" class="form-select">
+                            <option value="">كل المنتجات</option>
+                            {% for p in products %}
+                            <option value="{{ p.id }}" {% if selected_product_id == p.id %}selected{% endif %}>{{ p.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- نوع الحركة -->
+                    <div class="col-lg-2 col-md-6">
+                        <label class="form-label fw-bold">نوع الحركة</label>
+                        <select name="type" class="form-select">
+                            <option value="">كل الأنواع</option>
+                            <option value="in" {% if request.args.get('type') == 'in' %}selected{% endif %}>
+                                <i class="bi bi-arrow-down-circle"></i> دخول
+                            </option>
+                            <option value="out" {% if request.args.get('type') == 'out' %}selected{% endif %}>
+                                <i class="bi bi-arrow-up-circle"></i> خروج
+                            </option>
+                            <option value="transfer" {% if request.args.get('type') == 'transfer' %}selected{% endif %}>
+                                <i class="bi bi-arrow-left-right"></i> تحويل
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- الفترة الزمنية -->
+                    <div class="col-lg-2 col-md-6">
+                        <label class="form-label fw-bold">من تاريخ</label>
+                        <input type="date" name="date_from" class="form-control" value="{{ request.args.get('date_from', '') }}">
+                    </div>
+
+                    <div class="col-lg-2 col-md-6">
+                        <label class="form-label fw-bold">إلى تاريخ</label>
+                        <input type="date" name="date_to" class="form-control" value="{{ request.args.get('date_to', '') }}">
+                    </div>
+
+                    <!-- الفرع -->
+                    <div class="col-lg-2 col-md-6">
+                        <label class="form-label fw-bold">الفرع</label>
+                        <select name="branch_id" class="form-select">
+                            <option value="">كل الفروع</option>
+                            {% for b in branches %}
+                            <option value="{{ b.id }}" {% if selected_branch_id == b.id %}selected{% endif %}>{{ b.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- التاجر -->
+                    <div class="col-lg-2 col-md-6">
+                        <label class="form-label fw-bold">التاجر</label>
+                        <select name="dealer_id" class="form-select">
+                            <option value="">كل التجار</option>
+                            {% for d in dealers %}
+                            <option value="{{ d.id }}" {% if selected_dealer_id == d.id %}selected{% endif %}>{{ d.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- المستخدم -->
+                    <div class="col-lg-2 col-md-6">
+                        <label class="form-label fw-bold">المستخدم</label>
+                        <select name="user_id" class="form-select">
+                            <option value="">كل المستخدمين</option>
+                            {% for user in users %}
+                            <option value="{{ user.id }}" {% if request.args.get('user_id')|int == user.id %}selected{% endif %}>{{ user.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- الوردية -->
+                    <div class="col-lg-2 col-md-6">
+                        <label class="form-label fw-bold">الوردية</label>
+                        <select name="shift" class="form-select">
+                            <option value="">كل الورديات</option>
+                            <option value="morning" {% if request.args.get('shift') == 'morning' %}selected{% endif %}>صباحية</option>
+                            <option value="evening" {% if request.args.get('shift') == 'evening' %}selected{% endif %}>مسائية</option>
+                        </select>
+                    </div>
+
+                    <!-- الكمية -->
+                    <div class="col-lg-2 col-md-6">
+                        <label class="form-label fw-bold">الكمية (أقل من)</label>
+                        <input type="number" name="quantity_less" class="form-control" placeholder="أدخل الكمية" value="{{ request.args.get('quantity_less', '') }}">
+                    </div>
+
+                    <!-- أزرار التحكم -->
+                    <div class="col-12">
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search"></i> بحث
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="clearFilters()">
+                                <i class="bi bi-x-circle"></i> مسح الفلاتر
+                            </button>
+                            <a href="{{ url_for('movements.export_movements_excel', **request.args) }}" class="btn btn-outline-success">
+                                <i class="bi bi-file-earmark-excel"></i> تصدير Excel
+                            </a>
+
+
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- جدول الحركات المحسن -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">
+                <i class="bi bi-table"></i> نتائج البحث ({{ movements|length }} حركة)
+            </h6>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-secondary" onclick="refreshTable()">
+                    <i class="bi bi-arrow-clockwise"></i> تحديث
+                </button>
+                <a href="{{ url_for('movements.export_movements_excel', **request.args) }}" class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-file-earmark-excel"></i> تصدير Excel
+                </a>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover text-end mb-0 align-middle" id="movements-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="sortable" data-sort="product">المنتج <i class="bi bi-arrow-down-up"></i></th>
+                            <th class="sortable" data-sort="source">من <i class="bi bi-arrow-down-up"></i></th>
+                            <th class="sortable" data-sort="destination">إلى <i class="bi bi-arrow-down-up"></i></th>
+                            <th class="sortable" data-sort="type">النوع <i class="bi bi-arrow-down-up"></i></th>
+                            <th class="sortable" data-sort="quantity">الكمية <i class="bi bi-arrow-down-up"></i></th>
+                            <th class="sortable" data-sort="user">المستخدم <i class="bi bi-arrow-down-up"></i></th>
+                            <th class="sortable" data-sort="shift">الوردية <i class="bi bi-arrow-down-up"></i></th>
+                            <th class="sortable" data-sort="date">التاريخ <i class="bi bi-arrow-down-up"></i></th>
+                            <th>ملاحظات</th>
+                            <th>الحذف</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for movement in movements %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="me-2">
+                                        <i class="bi bi-box text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <strong>{{ movement.product.name }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ movement.product.category.name if movement.product.category else 'غير محدد' }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark me-1">{{ ENTITY_LABELS[movement.source_type] }}</span>
+                                {% if movement.source_id %}
+                                    <small>{{ get_entity_name(movement.source_type, movement.source_id) }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark me-1">{{ ENTITY_LABELS[movement.destination_type] }}</span>
+                                {% if movement.destination_id %}
+                                    <small>{{ get_entity_name(movement.destination_type, movement.destination_id) }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if movement.type == 'in' %}
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-arrow-down-circle"></i> دخول
+                                    </span>
+                                {% elif movement.type == 'out' %}
+                                    <span class="badge bg-danger">
+                                        <i class="bi bi-arrow-up-circle"></i> خروج
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="bi bi-arrow-left-right"></i> تحويل
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="fw-bold">{{ movement.quantity }}</span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-sm me-2">
+                                        <i class="bi bi-person-circle text-secondary"></i>
+                                    </div>
+                                    <span>{{ movement.user.username }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'info' if movement.shift == 'morning' else 'secondary' }}">
+                                    {{ 'صباحية' if movement.shift == 'morning' else 'مسائية' }}
+                                </span>
+                            </td>
+                            <td>
+                                <div>
+                                    <div class="fw-bold">{{ movement.timestamp.strftime('%Y-%m-%d') }}</div>
+                                    <small class="text-muted">{{ movement.timestamp.strftime('%H:%M') }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                {% if movement.notes %}
+                                    <span class="text-truncate d-inline-block" style="max-width: 150px;" title="{{ movement.notes }}">
+                                        {{ movement.notes }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if current_user.is_admin() %}
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteMovement({{ movement.id }}, '{{ movement.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}')" title="حذف الحركة">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="10" class="text-center text-muted py-5">
+                                <div class="empty-state">
+                                    <i class="bi bi-arrow-left-right fs-1 text-muted mb-3"></i>
+                                    <h5>لا توجد حركات مسجلة</h5>
+                                    <p class="text-muted">جرب تغيير معايير البحث أو إضافة حركة جديدة</p>
+                                    <a href="{{ url_for('movements.add_movement') }}" class="btn btn-primary">
+                                        <i class="bi bi-plus-circle"></i> إضافة حركة جديدة
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+<style>
+/* تحسينات التصميم */
+.card {
+    border-radius: 12px;
+    border: none;
+}
+
+.form-label {
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+
+.form-select, .form-control {
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.form-select:focus, .form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.sortable:hover {
+    background-color: #f8f9fa;
+}
+
+.avatar-sm {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #f8f9fa;
+}
+
+.empty-state {
+    padding: 40px 20px;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.badge {
+    font-size: 11px;
+    padding: 4px 8px;
+}
+
+.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 12px;
+}
+
+/* تحسين زر الحذف */
+.btn-outline-danger {
+    border-color: #dc3545;
+    color: #dc3545;
+    transition: all 0.2s ease;
+}
+
+.btn-outline-danger:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+    transform: scale(1.05);
+}
+
+.btn-outline-danger:focus {
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+/* تحسين عرض الجدول */
+.table-responsive {
+    border-radius: 0 0 12px 12px;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: #495057;
+    font-size: 14px;
+}
+
+.table td {
+    vertical-align: middle;
+    font-size: 14px;
+}
+
+/* تحسين عمود الحذف */
+.table td:last-child {
+    text-align: center;
+    width: 80px;
+}
+
+.table th:last-child {
+    text-align: center;
+    width: 80px;
+}
+
+.alert-sm {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
+}
+
+.alert-info {
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+    color: #0c5460;
+}
+</style>
+
+<script>
+// دوال JavaScript للوظائف الجديدة
+function clearFilters() {
+    const form = document.getElementById('filter-form');
+    const inputs = form.querySelectorAll('input, select');
+    inputs.forEach(input => {
+        if (input.type === 'date' || input.type === 'number') {
+            input.value = '';
+        } else if (input.tagName === 'SELECT') {
+            input.selectedIndex = 0;
+        }
+    });
+    form.submit();
+}
+
+
+
+
+
+function refreshTable() {
+    location.reload();
+}
+
+
+
+
+
+function deleteMovement(id, timestamp) {
+    // التحقق من أن الحركة حديثة (أقل من 24 ساعة)
+    const movementTime = new Date(timestamp);
+    const currentTime = new Date();
+    const hoursDiff = (currentTime - movementTime) / (1000 * 60 * 60);
+
+    if (hoursDiff >= 24) {
+        alert('لا يمكن حذف الحركات التي يزيد عمرها عن 24 ساعة!');
+        return;
+    }
+
+    if (confirm('هل أنت متأكد من حذف هذه الحركة؟ سيتم عكس تأثيرها على المخزون.')) {
+        fetch(`/movements/api/delete/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('خطأ: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('حدث خطأ أثناء حذف الحركة');
+        });
+    }
+}
+
+// ترتيب الجدول
+document.addEventListener('DOMContentLoaded', function() {
+    const sortableHeaders = document.querySelectorAll('.sortable');
+    sortableHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            const column = this.dataset.sort;
+            // يمكن إضافة منطق الترتيب هنا
+            console.log(`ترتيب حسب: ${column}`);
+        });
+    });
+});
+</script>
+{% endblock %}

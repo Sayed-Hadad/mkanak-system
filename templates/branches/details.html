@@ -1,0 +1,325 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ branch.name }} - تفاصيل الفرع{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- رأس الصفحة -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">{{ branch.name }}</h2>
+                    <p class="text-muted mb-0">تفاصيل الفرع والمخزون</p>
+                </div>
+                <div class="d-flex gap-2">
+                    {% if current_user.is_admin() %}
+                    <a href="{{ url_for('branches.remove_product_form', branch_id=branch.id) }}" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> حذف منتج
+                    </a>
+                    {% endif %}
+                    <a href="{{ url_for('branches.list_branches') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-right"></i> العودة للفروع
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- إحصائيات سريعة -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="text-primary mb-2">
+                        <i class="bi bi-box-seam fs-1"></i>
+                    </div>
+                    <h4 class="mb-1">{{ branch_products|length }}</h4>
+                    <p class="text-muted mb-0">المنتجات المتوفرة</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="text-success mb-2">
+                        <i class="bi bi-currency-dollar fs-1"></i>
+                    </div>
+                    <h4 class="mb-1">{{ "{:,.0f}".format(total_stock_value) }}</h4>
+                    <p class="text-muted mb-0">قيمة المخزون</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="text-info mb-2">
+                        <i class="bi bi-arrow-left-right fs-1"></i>
+                    </div>
+                    <h4 class="mb-1">{{ movements_stats.today }}</h4>
+                    <p class="text-muted mb-0">حركات اليوم</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="text-warning mb-2">
+                        <i class="bi bi-calendar-week fs-1"></i>
+                    </div>
+                    <h4 class="mb-1">{{ movements_stats.week }}</h4>
+                    <p class="text-muted mb-0">حركات الأسبوع</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- المنتجات في الفرع -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">المنتجات في الفرع</h5>
+                </div>
+                <div class="card-body">
+                    {% if branch_products %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>المنتج</th>
+                                        <th>الصنف</th>
+                                        <th>السعر</th>
+                                        <th>الكمية</th>
+                                        <th>القيمة الإجمالية</th>
+                                        {% if current_user.is_admin() %}
+                                        <th>الإجراءات</th>
+                                        {% endif %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in branch_products %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ item.product.name }}</strong>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ item.product.category.name if item.product.category else 'غير محدد' }}</span>
+                                        </td>
+                                        <td>{{ "{:,.0f}".format(item.product.price) }}</td>
+                                        <td>
+                                            <span class="badge bg-primary">{{ item.quantity }}</span>
+                                        </td>
+                                        <td>{{ "{:,.0f}".format(item.product.price * item.quantity) }}</td>
+                                        {% if current_user.is_admin() %}
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-danger"
+                                                    onclick="quickRemoveProduct({{ item.product.id }}, '{{ item.product.name }}', {{ item.quantity }})"
+                                                    title="حذف سريع">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                        {% endif %}
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-box text-muted fs-1 mb-3"></i>
+                            <p class="text-muted">لا توجد منتجات في هذا الفرع حالياً</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- الإحصائيات الجانبية -->
+        <div class="col-lg-4">
+            <!-- المنتجات الأكثر حركة -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0">
+                    <h6 class="mb-0">المنتجات الأكثر حركة</h6>
+                </div>
+                <div class="card-body">
+                    {% if top_products %}
+                        {% for product in top_products %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-truncate">{{ product.name }}</span>
+                            <span class="badge bg-info">{{ product.total_moved }}</span>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center mb-0">لا توجد بيانات</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- الحركات الأخيرة -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h6 class="mb-0">الحركات الأخيرة</h6>
+                </div>
+                <div class="card-body">
+                    {% if recent_movements %}
+                        {% for movement in recent_movements %}
+                        <div class="border-bottom pb-2 mb-2">
+                            <div class="d-flex justify-content-between">
+                                <small class="text-muted">{{ movement.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+                                <span class="badge bg-{{ 'success' if movement.type == 'in' else 'danger' if movement.type == 'out' else 'info' }}">
+                                    {{ 'وارد' if movement.type == 'in' else 'صادر' if movement.type == 'out' else 'تحويل' }}
+                                </span>
+                            </div>
+                            <div class="mt-1">
+                                <strong>{{ movement.product.name }}</strong>
+                                <span class="text-muted">({{ movement.quantity }})</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center mb-0">لا توجد حركات</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal للحذف السريع -->
+<div class="modal fade" id="quickRemoveModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">حذف سريع للمنتج</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>هل تريد حذف المنتج: <strong id="productName"></strong>؟</p>
+                <div class="mb-3">
+                    <label for="removeQuantity" class="form-label">الكمية المراد حذفها:</label>
+                    <input type="number" class="form-control" id="removeQuantity" min="1" value="1">
+                    <div class="form-text">الكمية المتوفرة: <span id="availableQty" class="fw-bold"></span></div>
+                </div>
+                <div class="mb-3">
+                    <label for="removeNotes" class="form-label">ملاحظات (اختياري):</label>
+                    <textarea class="form-control" id="removeNotes" rows="2" placeholder="سبب الحذف..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-danger" onclick="confirmQuickRemove()">حذف</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// منع تكرار الأحداث
+let currentProductId = null;
+let currentMaxQuantity = 0;
+let isModalInitialized = false;
+
+function quickRemoveProduct(productId, productName, maxQuantity) {
+    // منع التكرار
+    if (currentProductId === productId && isModalInitialized) {
+        return;
+    }
+
+    currentProductId = productId;
+    currentMaxQuantity = maxQuantity;
+    isModalInitialized = true;
+
+    // تحديث البيانات في Modal
+    document.getElementById('productName').textContent = productName;
+    document.getElementById('availableQty').textContent = maxQuantity;
+    document.getElementById('removeQuantity').max = maxQuantity;
+    document.getElementById('removeQuantity').value = 1;
+    document.getElementById('removeNotes').value = '';
+
+    // إظهار Modal
+    const modal = new bootstrap.Modal(document.getElementById('quickRemoveModal'));
+    modal.show();
+
+    // إعادة تعيين عند إغلاق Modal
+    document.getElementById('quickRemoveModal').addEventListener('hidden.bs.modal', function() {
+        isModalInitialized = false;
+        currentProductId = null;
+        currentMaxQuantity = 0;
+    }, { once: true });
+}
+
+function confirmQuickRemove() {
+    const quantityInput = document.getElementById('removeQuantity');
+    const notesInput = document.getElementById('removeNotes');
+
+    const quantity = parseInt(quantityInput.value);
+    const notes = notesInput.value;
+
+    // التحقق من صحة البيانات
+    if (isNaN(quantity) || quantity <= 0) {
+        alert('يجب أن تكون الكمية أكبر من صفر');
+        quantityInput.focus();
+        return;
+    }
+
+    if (quantity > currentMaxQuantity) {
+        alert(`الكمية المدخلة (${quantity}) أكبر من الكمية المتوفرة (${currentMaxQuantity})`);
+        quantityInput.focus();
+        return;
+    }
+
+    // تعطيل الزر لمنع النقر المتكرر
+    const deleteButton = document.querySelector('#quickRemoveModal .btn-danger');
+    const originalText = deleteButton.innerHTML;
+    deleteButton.disabled = true;
+    deleteButton.innerHTML = '<i class="bi bi-hourglass-split"></i> جاري الحذف...';
+
+    // إرسال طلب الحذف
+    fetch(`/branches/{{ branch.id }}/remove-product`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            product_id: currentProductId,
+            quantity: quantity,
+            notes: notes
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('خطأ: ' + data.message);
+            // إعادة تفعيل الزر
+            deleteButton.disabled = false;
+            deleteButton.innerHTML = originalText;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('حدث خطأ أثناء حذف المنتج');
+        // إعادة تفعيل الزر
+        deleteButton.disabled = false;
+        deleteButton.innerHTML = originalText;
+    });
+
+    // إغلاق Modal
+    bootstrap.Modal.getInstance(document.getElementById('quickRemoveModal')).hide();
+}
+
+// إضافة مستمع لحدث إغلاق Modal
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('quickRemoveModal');
+    modal.addEventListener('hidden.bs.modal', function() {
+        isModalInitialized = false;
+        currentProductId = null;
+        currentMaxQuantity = 0;
+    });
+});
+</script>
+{% endblock %}

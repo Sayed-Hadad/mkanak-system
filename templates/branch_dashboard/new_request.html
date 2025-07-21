@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}طلب منتج جديد - {{ branch.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h1 class="h4 mb-0">
+                <i class="bi bi-plus-circle text-success"></i>
+                طلب منتج جديد - {{ branch.name }}
+            </h1>
+            <a href="{{ url_for('branch_dashboard.requests') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-right"></i> العودة للطلبات
+            </a>
+        </div>
+    </div>
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-success">
+                <i class="bi bi-cart-plus"></i> نموذج طلب منتج جديد
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="post" id="request-form">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">المنتج</label>
+                        <select name="product_id" class="form-select" required id="product-select">
+                            <option value="">اختر المنتج</option>
+                            {% for product in products %}
+                                <option value="{{ product.id }}">{{ product.name }} ({{ product.price }} ج.م)</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">الكمية المطلوبة</label>
+                        <input type="number" name="quantity" class="form-control" min="1" required>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label">المصدر</label>
+                        <select name="source_type" class="form-select" id="source-type-select" required>
+                            <option value="">اختر المصدر</option>
+                            {% for src in available_sources %}
+                                <option value="{{ src.type }}" data-id="{{ src.id }}">{{ src.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <input type="hidden" name="source_id" id="source-id-input">
+                    </div>
+                </div>
+                <div class="row g-3 mt-3">
+                    <div class="col-md-12">
+                        <label class="form-label">ملاحظات إضافية (اختياري)</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="أي تفاصيل إضافية..."></textarea>
+                    </div>
+                </div>
+                <div class="row g-3 mt-3">
+                    <div class="col-md-12">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-send"></i> إرسال الطلب
+                        </button>
+                        <a href="{{ url_for('branch_dashboard.requests') }}" class="btn btn-outline-secondary ms-2">
+                            <i class="bi bi-x"></i> إلغاء
+                        </a>
+                    </div>
+                </div>
+            </form>
+            <div id="stock-info" class="mt-4" style="display:none;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+// عند تغيير المنتج أو المصدر، أظهر الكمية المتوفرة في المصدر
+const productSelect = document.getElementById('product-select');
+const sourceTypeSelect = document.getElementById('source-type-select');
+const stockInfo = document.getElementById('stock-info');
+const sourceIdInput = document.getElementById('source-id-input');
+
+sourceTypeSelect.addEventListener('change', function() {
+    const selectedOption = sourceTypeSelect.options[sourceTypeSelect.selectedIndex];
+    const sourceId = selectedOption.getAttribute('data-id');
+    sourceIdInput.value = sourceId || '';
+    updateStockInfo();
+});
+productSelect.addEventListener('change', updateStockInfo);
+
+function updateStockInfo() {
+    const productId = productSelect.value;
+    const sourceType = sourceTypeSelect.value;
+    const sourceId = sourceTypeSelect.options[sourceTypeSelect.selectedIndex].getAttribute('data-id');
+    if (!productId || !sourceType) {
+        stockInfo.style.display = 'none';
+        stockInfo.innerHTML = '';
+        return;
+    }
+    // AJAX لجلب الكمية المتوفرة في المصدر
+    fetch(`/api/branch/stock_info?product_id=${productId}&source_type=${sourceType}&source_id=${sourceId}`)
+        .then(res => res.json())
+        .then(data => {
+            stockInfo.style.display = 'block';
+            if (data.success) {
+                stockInfo.innerHTML = `<div class='alert alert-info'>الكمية المتوفرة في <b>${data.source_name}</b>: <b>${data.quantity}</b></div>`;
+            } else {
+                stockInfo.innerHTML = `<div class='alert alert-warning'>${data.message}</div>`;
+            }
+        });
+}
+</script>
+{% endblock %} 

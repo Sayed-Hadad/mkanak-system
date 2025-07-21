@@ -1,0 +1,499 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container" dir="rtl">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card mt-5">
+                <div class="card-header bg-info text-white text-center">
+                    <h4>{{ title }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="movement-form" autocomplete="off">
+                        {{ form.hidden_tag() }}
+                        <div class="mb-3">
+                            <label class="form-label float-end">نوع الحركة <span class="text-danger">*</span></label>
+                            <select class="form-select text-end" id="movement-type" required>
+                                <option value="in_dealer">دخول من تاجر إلى المخزن</option>
+                                <option value="out_dealer">خروج من المخزن إلى تاجر</option>
+                                <option value="out_branch">خروج من المخزن إلى فرع</option>
+                                <option value="transfer_branch">تحويل بين الفروع</option>
+                            </select>
+                        </div>
+
+                        <!-- قسم التاجر -->
+                        <div class="mb-3" id="dealer-section" style="display:none;">
+                            <label class="form-label float-end">اختر التاجر <span class="text-danger">*</span></label>
+                            <select class="form-select text-end" id="dealer-select"></select>
+                            <button type="button" class="btn btn-outline-success mt-2" id="add-dealer-btn"><i class="bi bi-plus-circle"></i> تاجر جديد</button>
+                            <div id="dealer-add-form" class="mt-2" style="display:none;">
+                                <input type="text" class="form-control mb-2" id="dealer-name" placeholder="اسم التاجر *">
+                                <input type="text" class="form-control mb-2" id="dealer-phone" placeholder="رقم الهاتف">
+                                <input type="text" class="form-control mb-2" id="dealer-address" placeholder="العنوان">
+                                <input type="text" class="form-control mb-2" id="dealer-notes" placeholder="ملاحظات">
+                                <button type="button" class="btn btn-success btn-sm" id="save-dealer-btn">حفظ التاجر</button>
+                                <button type="button" class="btn btn-secondary btn-sm" id="cancel-dealer-btn">إلغاء</button>
+                            </div>
+                        </div>
+
+                        <!-- قسم الفرع الواحد (للخروج من المخزن) -->
+                        <div class="mb-3" id="single-branch-section" style="display:none;">
+                            <label class="form-label float-end">اختر الفرع <span class="text-danger">*</span></label>
+                            <select class="form-select text-end" id="single-branch-select"></select>
+                        </div>
+
+                        <!-- قسم التحويل بين الفروع -->
+                        <div class="mb-3" id="transfer-section" style="display:none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label float-end">من فرع <span class="text-danger">*</span></label>
+                                    <select class="form-select text-end" id="source-branch-select"></select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label float-end">إلى فرع <span class="text-danger">*</span></label>
+                                    <select class="form-select text-end" id="destination-branch-select"></select>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">سيتم تحويل المنتجات من الفرع المحدد إلى الفرع الهدف</small>
+                            </div>
+                        </div>
+
+                        <div class="mb-3" id="product-section">
+                            <label class="form-label float-end">المنتج <span class="text-danger">*</span></label>
+                            <select class="form-select text-end" id="product-select"></select>
+                            <div id="product-stock-info" class="text-info mt-1" style="font-size:1rem;"></div>
+                            <button type="button" class="btn btn-outline-success mt-2" id="add-product-btn"><i class="bi bi-plus-circle"></i> منتج جديد</button>
+                            <div id="product-add-form" class="mt-2" style="display:none;">
+                                <input type="text" class="form-control mb-2" id="product-name" placeholder="اسم المنتج *">
+                                <div class="input-group mb-2">
+                                    <select class="form-select" id="product-category"></select>
+                                    <button type="button" class="btn btn-outline-success" id="add-category-btn"><i class="bi bi-plus-circle"></i> صنف جديد</button>
+                                </div>
+                                <div id="category-add-form" class="mt-2" style="display:none;">
+                                    <input type="text" class="form-control mb-2" id="category-name" placeholder="اسم الصنف *">
+                                    <button type="button" class="btn btn-success btn-sm" id="save-category-btn">حفظ الصنف</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" id="cancel-category-btn">إلغاء</button>
+                                </div>
+                                <input type="number" class="form-control mb-2" id="product-qty" placeholder="الكمية *" min="1">
+                                <input type="number" class="form-control mb-2" id="product-price" placeholder="السعر *" step="0.01">
+                                <button type="button" class="btn btn-success btn-sm" id="save-product-btn">حفظ المنتج</button>
+                                <button type="button" class="btn btn-secondary btn-sm" id="cancel-product-btn">إلغاء</button>
+                            </div>
+                        </div>
+                        <div class="mb-3" id="quantity-section">
+                            <label class="form-label float-end">الكمية <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control text-end" id="movement-qty" name="quantity" min="1" required>
+                        </div>
+                        <div class="mb-3">
+                            {{ form.shift.label(class="form-label float-end") }} <span class="text-danger">*</span>
+                            {{ form.shift(class="form-select text-end") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.notes.label(class="form-label float-end") }}
+                            {{ form.notes(class="form-control text-end") }}
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-info btn-lg">حفظ الحركة</button>
+                        </div>
+                    </form>
+                    <div class="mt-3 text-center">
+                        <a href="{{ url_for('movements.list_movements') }}">عودة لقائمة الحركات</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+<script>
+let dealers = [];
+let products = [];
+let categories = [];
+let branches = [];
+
+async function fetchInitialData() {
+    try {
+        dealers = await fetch('/dealers/api/list').then(r=>r.json());
+        products = await fetch('/products/api/list').then(r=>r.json());
+        categories = await fetch('/categories/api/list').then(r=>r.json());
+        branches = await fetch('/branches/api/list').then(r=>r.json());
+
+        populateSelect(document.getElementById('dealer-select'), [{id: '', name: 'اختر تاجر...'}].concat(dealers).concat([{id: 'new', name: 'تاجر جديد'}]), 'id', 'name');
+        populateSelect(document.getElementById('product-select'), [{id: '', name: 'اختر منتج...'}].concat(products).concat([{id: 'new', name: 'منتج جديد'}]), 'id', 'name');
+        populateSelect(document.getElementById('product-category'), [{id: '', name: 'اختر الصنف...'}].concat(categories), 'id', 'name');
+        populateSelect(document.getElementById('single-branch-select'), [{id: '', name: 'اختر فرع...'}].concat(branches), 'id', 'name');
+        populateSelect(document.getElementById('source-branch-select'), [{id: '', name: 'اختر فرع المصدر...'}].concat(branches), 'id', 'name');
+        populateSelect(document.getElementById('destination-branch-select'), [{id: '', name: 'اختر فرع الوجهة...'}].concat(branches), 'id', 'name');
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        showToast('خطأ في تحميل البيانات', false);
+    }
+}
+
+function populateSelect(select, data, valueField, textField) {
+    select.innerHTML = '';
+    data.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item[valueField];
+        option.text = item[textField];
+        select.appendChild(option);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    fetchInitialData();
+
+    const typeSelect = document.getElementById('movement-type');
+    const dealerSection = document.getElementById('dealer-section');
+    const singleBranchSection = document.getElementById('single-branch-section');
+    const transferSection = document.getElementById('transfer-section');
+
+    // تحديث الأقسام بناءً على نوع الحركة
+    function updateSections() {
+        const type = typeSelect.value;
+
+        // إخفاء جميع الأقسام أولاً
+        dealerSection.style.display = 'none';
+        singleBranchSection.style.display = 'none';
+        transferSection.style.display = 'none';
+
+        // إظهار القسم المناسب
+        if (type === 'in_dealer' || type === 'out_dealer') {
+            dealerSection.style.display = 'block';
+        } else if (type === 'out_branch') {
+            singleBranchSection.style.display = 'block';
+        } else if (type === 'transfer_branch') {
+            transferSection.style.display = 'block';
+        }
+    }
+
+    typeSelect.addEventListener('change', updateSections);
+    updateSections();
+
+    // منع اختيار نفس الفرع كمصدر ووجهة في التحويل
+    document.getElementById('source-branch-select').addEventListener('change', function() {
+        const sourceId = this.value;
+        const destinationSelect = document.getElementById('destination-branch-select');
+
+        // إعادة تعيين خيارات الوجهة
+        populateSelect(destinationSelect, [{id: '', name: 'اختر فرع الوجهة...'}].concat(branches), 'id', 'name');
+
+        // إزالة الفرع المختار كمصدر من خيارات الوجهة
+        if (sourceId) {
+            const options = destinationSelect.options;
+            for (let i = 0; i < options.length; i++) {
+                if (options[i].value === sourceId) {
+                    destinationSelect.remove(i);
+                    break;
+                }
+            }
+        }
+    });
+
+    // باقي الكود الموجود...
+    const dealerSelect = document.getElementById('dealer-select');
+    const addDealerBtn = document.getElementById('add-dealer-btn');
+    const dealerAddForm = document.getElementById('dealer-add-form');
+    const saveDealerBtn = document.getElementById('save-dealer-btn');
+    const cancelDealerBtn = document.getElementById('cancel-dealer-btn');
+    const productSection = document.getElementById('product-section');
+    const productSelect = document.getElementById('product-select');
+    const addProductBtn = document.getElementById('add-product-btn');
+    const productAddForm = document.getElementById('product-add-form');
+    const saveProductBtn = document.getElementById('save-product-btn');
+    const cancelProductBtn = document.getElementById('cancel-product-btn');
+    const categorySelect = document.getElementById('product-category');
+
+    // تاجر جديد
+    dealerSelect.addEventListener('change', function() {
+        if(dealerSelect.value === 'new') {
+            dealerAddForm.style.display = '';
+        } else {
+            dealerAddForm.style.display = 'none';
+        }
+    });
+
+    addDealerBtn.addEventListener('click', function() {
+        dealerSelect.value = 'new';
+        dealerAddForm.style.display = '';
+    });
+
+    cancelDealerBtn.addEventListener('click', function() {
+        dealerAddForm.style.display = 'none';
+        dealerSelect.value = '';
+    });
+
+    saveDealerBtn.addEventListener('click', async function() {
+        const name = document.getElementById('dealer-name').value.trim();
+        const phone = document.getElementById('dealer-phone').value.trim();
+        const address = document.getElementById('dealer-address').value.trim();
+        const notes = document.getElementById('dealer-notes').value.trim();
+        if(!name) { showToast('اسم التاجر مطلوب', false); return; }
+        saveDealerBtn.disabled = true;
+        const res = await fetch('/dealers/api/add', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name, phone, address, notes})
+        });
+        const data = await res.json();
+        if(data.success) {
+            dealers.push({id: data.id, name: data.name});
+            populateSelect(dealerSelect, [{id: '', name: 'اختر تاجر...'}].concat(dealers).concat([{id: 'new', name: 'تاجر جديد'}]), 'id', 'name');
+            dealerSelect.value = data.id;
+            dealerAddForm.style.display = 'none';
+            showToast('تمت إضافة التاجر بنجاح', true);
+        } else {
+            showToast(data.message, false);
+        }
+        saveDealerBtn.disabled = false;
+    });
+
+    // منتج جديد
+    productSelect.addEventListener('change', function() {
+        if(productSelect.value === 'new') {
+            productAddForm.style.display = '';
+        } else {
+            productAddForm.style.display = 'none';
+        }
+    });
+
+    addProductBtn.addEventListener('click', function() {
+        productSelect.value = 'new';
+        productAddForm.style.display = '';
+    });
+
+    cancelProductBtn.addEventListener('click', function() {
+        productAddForm.style.display = 'none';
+        productSelect.value = '';
+    });
+
+    saveProductBtn.addEventListener('click', async function() {
+        const name = document.getElementById('product-name').value.trim();
+        const category_id = categorySelect.value;
+        const price = document.getElementById('product-price').value.trim();
+        const quantity = document.getElementById('product-qty').value.trim();
+        if(!name || !category_id || !price || !quantity) { showToast('جميع الحقول مطلوبة', false); return; }
+        saveProductBtn.disabled = true;
+        const res = await fetch('/products/api/add', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name, category_id, price, quantity})
+        });
+        const data = await res.json();
+        if(data.success) {
+            products.push({id: data.id, name: data.name, quantity: parseInt(quantity)});
+            populateSelect(productSelect, [{id: '', name: 'اختر منتج...'}].concat(products).concat([{id: 'new', name: 'منتج جديد'}]), 'id', 'name');
+            productSelect.value = data.id;
+            productAddForm.style.display = 'none';
+            showToast('تمت إضافة المنتج بنجاح', true);
+        } else {
+            showToast(data.message, false);
+        }
+        saveProductBtn.disabled = false;
+    });
+
+    // Toast
+    function showToast(msg, success) {
+        let toast = document.getElementById('toast-msg');
+        if(!toast) {
+            toast = document.createElement('div');
+            toast.id = 'toast-msg';
+            toast.style.position = 'fixed';
+            toast.style.top = '30px';
+            toast.style.left = '50%';
+            toast.style.transform = 'translateX(-50%)';
+            toast.style.zIndex = 9999;
+            toast.style.minWidth = '200px';
+            toast.style.padding = '12px 24px';
+            toast.style.borderRadius = '8px';
+            toast.style.fontSize = '1.1rem';
+            toast.style.textAlign = 'center';
+            document.body.appendChild(toast);
+        }
+        toast.innerText = msg;
+        toast.style.background = success ? '#28a745' : '#dc3545';
+        toast.style.color = '#fff';
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 2500);
+    }
+
+    // صنف جديد
+    const addCategoryBtn = document.getElementById('add-category-btn');
+    const categoryAddForm = document.getElementById('category-add-form');
+    const saveCategoryBtn = document.getElementById('save-category-btn');
+    const cancelCategoryBtn = document.getElementById('cancel-category-btn');
+    const categoryNameInput = document.getElementById('category-name');
+
+    addCategoryBtn.addEventListener('click', function() {
+        categoryAddForm.style.display = '';
+        categoryNameInput.value = '';
+        categoryNameInput.focus();
+    });
+
+    cancelCategoryBtn.addEventListener('click', function() {
+        categoryAddForm.style.display = 'none';
+    });
+
+    saveCategoryBtn.addEventListener('click', async function() {
+        const name = categoryNameInput.value.trim();
+        if(!name) { showToast('اسم الصنف مطلوب', false); return; }
+        saveCategoryBtn.disabled = true;
+        const res = await fetch('/categories/api/add', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name})
+        });
+        const data = await res.json();
+        if(data.success) {
+            categories.push({id: data.id, name: data.name});
+            populateSelect(document.getElementById('product-category'), [{id: '', name: 'اختر الصنف...'}].concat(categories), 'id', 'name');
+            document.getElementById('product-category').value = data.id;
+            categoryAddForm.style.display = 'none';
+            showToast('تمت إضافة الصنف بنجاح', true);
+        } else {
+            showToast(data.message, false);
+        }
+        saveCategoryBtn.disabled = false;
+    });
+
+    // required fields dynamic
+    function updateRequiredFields() {
+        // منتج جديد
+        const prodForm = document.getElementById('product-add-form');
+        document.getElementById('product-name').required = prodForm.style.display !== 'none';
+        document.getElementById('product-category').required = prodForm.style.display !== 'none';
+        document.getElementById('product-qty').required = prodForm.style.display !== 'none';
+        document.getElementById('product-price').required = prodForm.style.display !== 'none';
+        // تاجر جديد
+        const dealerForm = document.getElementById('dealer-add-form');
+        if (dealerForm) {
+            document.getElementById('dealer-name').required = dealerForm.style.display !== 'none';
+        }
+    }
+
+    // Call on every show/hide
+    document.getElementById('add-product-btn').addEventListener('click', updateRequiredFields);
+    document.getElementById('cancel-product-btn').addEventListener('click', updateRequiredFields);
+    document.getElementById('product-select').addEventListener('change', updateRequiredFields);
+    document.getElementById('add-dealer-btn').addEventListener('click', updateRequiredFields);
+    document.getElementById('cancel-dealer-btn').addEventListener('click', updateRequiredFields);
+    document.getElementById('dealer-select').addEventListener('change', updateRequiredFields);
+
+    // حفظ الحركة عبر AJAX
+    document.getElementById('movement-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        // جمع البيانات
+        const typeMap = {
+            'in_dealer': {type: 'in', source_type: 'dealer', destination_type: 'warehouse'},
+            'out_dealer': {type: 'out', source_type: 'warehouse', destination_type: 'dealer'},
+            'out_branch': {type: 'out', source_type: 'warehouse', destination_type: 'branch'},
+            'transfer_branch': {type: 'transfer', source_type: 'branch', destination_type: 'branch'}
+        };
+
+        const typeVal = document.getElementById('movement-type').value;
+        const map = typeMap[typeVal];
+        if (!map) { showToast('نوع الحركة غير مدعوم', false); return; }
+
+        let source_id = null, destination_id = null;
+
+        if (typeVal === 'transfer_branch') {
+            source_id = document.getElementById('source-branch-select').value;
+            destination_id = document.getElementById('destination-branch-select').value;
+
+            if (!source_id || !destination_id) {
+                showToast('يرجى اختيار فرع المصدر وفرع الوجهة', false);
+                return;
+            }
+
+            if (source_id === destination_id) {
+                showToast('لا يمكن التحويل من فرع إلى نفس الفرع', false);
+                return;
+            }
+        } else {
+            if(map.source_type === 'dealer') source_id = document.getElementById('dealer-select').value;
+            if(map.source_type === 'branch') source_id = document.getElementById('single-branch-select').value;
+            if(map.destination_type === 'dealer') destination_id = document.getElementById('dealer-select').value;
+            if(map.destination_type === 'branch') destination_id = document.getElementById('single-branch-select').value;
+        }
+
+        // منتج واحد فقط حالياً (يمكن التوسعة لاحقاً)
+        const product_id = document.getElementById('product-select').value;
+        const quantity = parseInt(document.getElementById('movement-qty').value);
+        if(!product_id || !quantity || quantity < 1) { showToast('يرجى اختيار منتج وكمية صحيحة', false); return; }
+
+        const shift = document.getElementById('shift').value;
+        const notes = document.getElementById('notes').value;
+
+        const payload = {
+            products: [{product_id, quantity}],
+            type: map.type,
+            shift,
+            source_type: map.source_type,
+            destination_type: map.destination_type,
+            source_id,
+            destination_id,
+            notes
+        };
+
+        const btn = this.querySelector('button[type="submit"]');
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/movements/api/add', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if(data.success) {
+                showToast(data.message, true);
+                setTimeout(()=>{ window.location.href = '/movements/'; }, 1200);
+            } else {
+                showToast(data.message, false);
+            }
+        } catch(err) {
+            showToast('حدث خطأ أثناء الحفظ', false);
+        }
+        btn.disabled = false;
+    });
+
+    // إخفاء حقل الكمية في الحركة عند إضافة منتج جديد
+    function toggleMovementQtyField() {
+        const productFormVisible = productAddForm.style.display !== 'none';
+        document.getElementById('quantity-section').style.display = productFormVisible ? 'none' : '';
+    }
+
+    document.getElementById('add-product-btn').addEventListener('click', toggleMovementQtyField);
+    document.getElementById('cancel-product-btn').addEventListener('click', toggleMovementQtyField);
+    document.getElementById('product-select').addEventListener('change', toggleMovementQtyField);
+
+    // عند حفظ المنتج الجديد، أظهر حقل الكمية مجدداً
+    saveProductBtn.addEventListener('click', function() {
+        setTimeout(toggleMovementQtyField, 300); // بعد نجاح الإضافة
+    });
+
+    // ملخص سريع للمخزون الحالي عند اختيار المنتج
+    productSelect.addEventListener('change', function() {
+        const prodId = productSelect.value;
+        const infoDiv = document.getElementById('product-stock-info');
+        if(!prodId || prodId === 'new') { infoDiv.textContent = ''; return; }
+        const prod = products.find(p => p.id == prodId);
+        if(prod && typeof prod.quantity !== 'undefined') {
+            infoDiv.textContent = `المتوفر في المخزن: ${prod.quantity}`;
+        } else {
+            // جلب الكمية من السيرفر إذا لم تكن موجودة
+            fetch(`/products/api/list`).then(r=>r.json()).then(list=>{
+                const found = list.find(p=>p.id==prodId);
+                if(found && typeof found.quantity !== 'undefined') {
+                    infoDiv.textContent = `المتوفر في المخزن: ${found.quantity}`;
+                } else {
+                    infoDiv.textContent = '';
+                }
+            });
+        }
+    });
+});
+</script>
+<style>
+.form-label .text-danger { font-size: 1rem; }
+.btn-info.btn-lg { font-size: 1.1rem; font-weight: bold; }
+</style>
+{% endblock %}

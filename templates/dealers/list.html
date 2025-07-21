@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container" dir="rtl">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="mb-1">إدارة التجار</h3>
+            {% if not current_user.is_admin() %}
+            <p class="text-muted mb-0">
+                <i class="bi bi-info-circle"></i>
+                حذف التجار متاح للمدير فقط. يمكنك تعديل بيانات التجار.
+            </p>
+            {% endif %}
+        </div>
+        <a href="{{ url_for('dealers.add_dealer') }}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> إضافة تاجر جديد
+        </a>
+    </div>
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-striped text-end mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>اسم التاجر</th>
+                        <th>رقم الهاتف</th>
+                        <th>العنوان</th>
+                        <th>ملاحظات</th>
+                        <th>إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dealer in dealers %}
+                    <tr>
+                        <td>{{ dealer.name }}</td>
+                        <td>{{ dealer.phone or '-' }}</td>
+                        <td>{{ dealer.address or '-' }}</td>
+                        <td>{{ dealer.notes or '-' }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{{ url_for('dealers.edit_dealer', dealer_id=dealer.id) }}" class="btn btn-primary" title="تعديل التاجر">
+                                    <i class="bi bi-pencil"></i> تعديل
+                                </a>
+                                {% if current_user.is_admin() %}
+                                <form method="POST" action="{{ url_for('dealers.delete_dealer', dealer_id=dealer.id) }}" style="display:inline-block" onsubmit="return confirm('هل أنت متأكد من حذف التاجر؟');">
+                                    <button type="submit" class="btn btn-danger" title="حذف التاجر">
+                                        <i class="bi bi-trash"></i> حذف
+                                    </button>
+                                </form>
+                                {% else %}
+                                <button type="button" class="btn btn-secondary" disabled title="حذف التاجر متاح للمدير فقط">
+                                    <i class="bi bi-trash"></i> حذف
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">
+                            <i class="bi bi-person fs-2"></i><br>
+                            لا يوجد تجار حالياً.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+{% endblock %}

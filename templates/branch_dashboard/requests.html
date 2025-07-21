@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}طلبات {{ branch.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h1 class="h4 mb-0">
+                <i class="bi bi-cart text-success"></i>
+                الطلبات - {{ branch.name }}
+            </h1>
+            <a href="{{ url_for('branch_dashboard.dashboard') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-right"></i> العودة للوحة التحكم
+            </a>
+        </div>
+    </div>
+    <form method="get" class="row g-2 mb-3 align-items-end" id="filter-form">
+        <div class="col-md-3">
+            <label class="form-label">نوع الطلب</label>
+            <select name="type" class="form-select">
+                <option value="all" {% if request_type == 'all' %}selected{% endif %}>الكل</option>
+                <option value="sent" {% if request_type == 'sent' %}selected{% endif %}>الصادرة</option>
+                <option value="received" {% if request_type == 'received' %}selected{% endif %}>الواردة</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">الحالة</label>
+            <select name="status" class="form-select">
+                <option value="all" {% if status == 'all' %}selected{% endif %}>الكل</option>
+                <option value="pending" {% if status == 'pending' %}selected{% endif %}>قيد الانتظار</option>
+                <option value="accepted" {% if status == 'accepted' %}selected{% endif %}>مقبول</option>
+                <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>مرفوض</option>
+                <option value="delivered" {% if status == 'delivered' %}selected{% endif %}>تم التوصيل</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary me-2"><i class="bi bi-search"></i> بحث</button>
+            <a href="{{ url_for('branch_dashboard.requests') }}" class="btn btn-outline-secondary"><i class="bi bi-x"></i> إعادة تعيين</a>
+        </div>
+    </form>
+    <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-success">
+                <i class="bi bi-cart"></i> جميع الطلبات
+            </h6>
+            <a href="{{ url_for('branch_dashboard.new_request') }}" class="btn btn-success btn-sm">
+                <i class="bi bi-plus-circle"></i> طلب منتج جديد
+            </a>
+        </div>
+        <div class="card-body">
+            {% if requests %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>المنتج</th>
+                                <th>الكمية</th>
+                                <th>المصدر</th>
+                                <th>الحالة</th>
+                                <th>تاريخ الطلب</th>
+                                <th>الإجراء</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for req in requests %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-2">
+                                            <i class="bi bi-box text-success"></i>
+                                        </div>
+                                        <div>
+                                            <strong>{{ req.product.name }}</strong>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><span class="fw-bold">{{ req.quantity }}</span></td>
+                                <td>
+                                    {% if req.source_type == 'warehouse' %}
+                                        <span class="badge bg-primary">المخزن المركزي</span>
+                                    {% elif req.source_type == 'branch' %}
+                                        <span class="badge bg-info">{{ req.source_id|get_branch_name }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">غير محدد</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ req.get_status_badge_class() }}">{{ req.get_status_display() }}</span>
+                                </td>
+                                <td>
+                                    <span class="text-muted small">{{ req.requested_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                                </td>
+                                <td>
+                                    {% if req.status == 'pending' and req.source_type == 'branch' and req.source_id == current_user.branch_id and current_user.is_branch_manager() %}
+                                        <form method="post" action="{{ url_for('branch_dashboard.approve_request', request_id=req.id) }}" style="display:inline-block;">
+                                            <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('هل أنت متأكد من الموافقة على الطلب؟');">
+                                                <i class="bi bi-check-circle"></i> موافقة
+                                            </button>
+                                        </form>
+                                        <form method="post" action="{{ url_for('branch_dashboard.reject_request', request_id=req.id) }}" style="display:inline-block;">
+                                            <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('هل أنت متأكد من رفض الطلب؟');">
+                                                <i class="bi bi-x-circle"></i> رفض
+                                            </button>
+                                        </form>
+                                    {% elif req.can_be_cancelled() and req.requested_by == current_user.id %}
+                                        <form method="post" action="{{ url_for('branch_dashboard.cancel_request', request_id=req.id) }}" style="display:inline-block;">
+                                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('هل أنت متأكد من إلغاء الطلب؟');">
+                                                <i class="bi bi-x-circle"></i> إلغاء
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-cart fs-1 text-muted mb-3"></i>
+                    <h5>لا توجد طلبات مسجلة</h5>
+                    <p class="text-muted">جرب تغيير معايير البحث أو إضافة طلب جديد</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

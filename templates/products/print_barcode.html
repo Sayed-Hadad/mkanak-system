@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>طباعة باركود المنتج</title>
+    <style>
+        @page {
+            size: 1.50in 0.98in landscape;
+            margin: 0;
+        }
+        @media print {
+            body { margin: 0; }
+            .barcode-label { page-break-after: avoid; overflow: hidden; }
+        }
+        .barcode-label {
+            width: 1.50in;
+            height: 0.98in;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1px dashed #888;
+            font-family: 'Cairo', Arial, sans-serif;
+            /* تأكد من أن الاتجاه أفقي */
+            writing-mode: horizontal-tb;
+        }
+        .barcode-label img {
+            max-width: 80%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            margin-bottom: 0px;
+        }
+        .barcode-label .barcode-number {
+            font-size: 8px;
+            margin-top: 1px;
+            text-align: center;
+            letter-spacing: 2px;
+            direction: ltr;
+        }
+        .barcode-label .product-name {
+            font-size: 8px;
+            margin-top: 2px;
+            text-align: center;
+            direction: rtl;
+            font-weight: bold;
+        }
+        .barcode-label .product-price {
+            font-size: 7px;
+            margin-top: 0px;
+            text-align: center;
+            direction: rtl;
+        }
+    </style>
+</head>
+<body onload="window.print(); setTimeout(() => window.close(), 1000);">
+    <div class="barcode-label">
+        <img src="/static/barcodes/{{ product.barcode }}.png" alt="Barcode">
+    </div>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container" dir="rtl">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card mt-5">
+                <div class="card-header bg-warning text-dark text-center">
+                    <h4>{{ title }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" autocomplete="off">
+                        {{ form.hidden_tag() }}
+                        <div class="mb-3">
+                            {{ form.name.label(class="form-label float-end") }} <span class="text-danger">*</span>
+                            {{ form.name(class="form-control text-end") }}
+                        </div>
+                        <div class="d-grid">
+                            {{ form.submit(class="btn btn-warning btn-lg") }}
+                        </div>
+                    </form>
+                    <div class="mt-3 text-center">
+                        <a href="{{ url_for('branches.list_branches') }}">عودة لقائمة الفروع</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

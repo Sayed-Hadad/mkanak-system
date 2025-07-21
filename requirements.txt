@@ -1,0 +1,11 @@
+Flask
+Flask-Login
+Flask-WTF
+Flask-Babel
+Flask-SQLAlchemy
+Werkzeug
+pandas
+openpyxl
+xlsxwriter
+python-barcode
+Pillow

@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container" dir="rtl">
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <div class="card mt-4 shadow border-0">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center rounded-top">
+                    <h5 class="mb-0"><i class="bi bi-people"></i> بيانات العملاء</h5>
+                    <form class="d-flex" method="get">
+                        <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm me-2" placeholder="بحث بالاسم أو الرقم...">
+                        <select name="sort" class="form-select form-select-sm me-2">
+                            <option value="name" {% if sort=='name' %}selected{% endif %}>الاسم</option>
+                            <option value="phone" {% if sort=='phone' %}selected{% endif %}>رقم الهاتف</option>
+                        </select>
+                        <button class="btn btn-light btn-sm" type="submit">بحث</button>
+                    </form>
+                </div>
+                <div class="card-body p-0">
+                    <a href="{{ url_for('customers.export_customers') }}" class="btn btn-success btn-sm mb-2 ms-2 mt-2">
+                        <i class="bi bi-file-earmark-excel"></i> تصدير إلى Excel
+                    </a>
+                    <table class="table table-hover table-bordered text-end mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:60px;">#</th>
+                                <th>الاسم</th>
+                                <th>رقم الهاتف</th>
+                                <th style="width:120px;">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in customers %}
+                            <tr id="row-{{c.id}}">
+                                <td class="fw-bold text-primary">{{ c.id }}</td>
+                                <td class="fw-bold" id="name-{{c.id}}">{{ c.name or '-' }}</td>
+                                <td class="text-success" id="phone-{{c.id}}">{{ c.phone or '-' }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary me-1" onclick="showEdit({{c.id}})"><i class="bi bi-pencil"></i></button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteCustomer({{c.id}})"><i class="bi bi-trash"></i></button>
+                                </td>
+                            </tr>
+                            <tr id="edit-row-{{c.id}}" style="display:none; background:#f9f9f9;">
+                                <td></td>
+                                <td><input type="text" class="form-control form-control-sm" id="edit-name-{{c.id}}" value="{{c.name or ''}}"></td>
+                                <td><input type="text" class="form-control form-control-sm" id="edit-phone-{{c.id}}" value="{{c.phone or ''}}"></td>
+                                <td>
+                                    <button class="btn btn-sm btn-success me-1" onclick="saveEdit({{c.id}})"><i class="bi bi-check"></i></button>
+                                    <button class="btn btn-sm btn-secondary" onclick="cancelEdit({{c.id}})"><i class="bi bi-x"></i></button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="3" class="text-center text-muted">لا يوجد عملاء مسجلون بعد.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+<script>
+function showEdit(id) {
+    document.getElementById('row-' + id).style.display = 'none';
+    document.getElementById('edit-row-' + id).style.display = '';
+}
+function cancelEdit(id) {
+    document.getElementById('edit-row-' + id).style.display = 'none';
+    document.getElementById('row-' + id).style.display = '';
+}
+function saveEdit(id) {
+    const name = document.getElementById('edit-name-' + id).value.trim();
+    const phone = document.getElementById('edit-phone-' + id).value.trim();
+    fetch(`/customers/edit/${id}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}`
+    }).then(r => r.text()).then(res => {
+        if (res === 'success') {
+            document.getElementById('name-' + id).textContent = name;
+            document.getElementById('phone-' + id).textContent = phone;
+            cancelEdit(id);
+        } else {
+            alert('حدث خطأ أثناء التعديل');
+        }
+    });
+}
+function deleteCustomer(id) {
+    if (!confirm('هل أنت متأكد من حذف هذا العميل؟')) return;
+    fetch(`/customers/delete/${id}`, {method: 'POST'}).then(r => r.text()).then(res => {
+        if (res === 'success') {
+            document.getElementById('row-' + id).remove();
+            document.getElementById('edit-row-' + id).remove();
+        } else {
+            alert('حدث خطأ أثناء الحذف');
+        }
+    });
+}
+</script>

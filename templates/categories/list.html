@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container" dir="rtl">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} text-end" role="alert">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0">الأصناف</h3>
+        <a href="{{ url_for('categories.add_category') }}" class="btn btn-success">
+            <i class="bi bi-plus-circle me-1"></i> إضافة صنف جديد
+        </a>
+    </div>
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-striped text-end mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:60%">اسم الصنف</th>
+                        <th style="width:40%">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for category in categories %}
+                    <tr>
+                        <td>{{ category.name }}</td>
+                        <td>
+                            <a href="{{ url_for('categories.edit_category', category_id=category.id) }}" class="btn btn-sm btn-primary"><i class="bi bi-pencil"></i> تعديل</a>
+                            <form method="POST" action="{{ url_for('categories.delete_category', category_id=category.id) }}" style="display:inline-block" onsubmit="return confirm('هل أنت متأكد من حذف الصنف؟');">
+                                <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i> حذف</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="2" class="text-center text-muted py-4">
+                            <i class="bi bi-folder-x fs-2"></i><br>
+                            لا توجد أصناف حالياً.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container" dir="rtl">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card mt-5">
+                <div class="card-header bg-success text-white text-center">
+                    <h4>{{ title }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+                        <div class="mb-3">
+                            {{ form.name.label(class="form-label float-end") }}
+                            {{ form.name(class="form-control text-end") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.category.label(class="form-label float-end") }}
+                            {{ form.category(class="form-select text-end") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.quantity.label(class="form-label float-end") }}
+                            {{ form.quantity(class="form-control text-end") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.price.label(class="form-label float-end") }}
+                            {{ form.price(class="form-control text-end") }}
+                        </div>
+                        <div class="d-grid">
+                            {{ form.submit(class="btn btn-success") }}
+                        </div>
+                    </form>
+                    <div class="mt-3 text-center">
+                        <a href="{{ url_for('products.list_products') }}">عودة لقائمة المنتجات</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

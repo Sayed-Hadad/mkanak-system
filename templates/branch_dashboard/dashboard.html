@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+
+{% block title %}لوحة تحكم {{ branch.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- رأس الصفحة -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0">
+                        <i class="bi bi-building text-primary"></i>
+                        لوحة تحكم {{ branch.name }}
+                    </h1>
+                    <p class="text-muted mb-0">{{ branch.address }}</p>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-success fs-6">
+                        <i class="bi bi-person-check"></i>
+                        {{ current_user.full_name or current_user.username }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الإحصائيات السريعة -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-right-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                المنتجات في الفرع
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.products_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-boxes fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-right-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                الطلبات الصادرة
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.outgoing_requests }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-arrow-up-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-right-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                الطلبات الواردة
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.incoming_requests }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-arrow-down-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-right-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                حركات اليوم
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.today_movements }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-arrow-left-right fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- المنتجات في الفرع -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="bi bi-box"></i>
+                        المنتجات في الفرع
+                    </h6>
+                    <a href="{{ url_for('branch_dashboard.inventory') }}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-eye"></i>
+                        عرض الكل
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if branch_products %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>المنتج</th>
+                                        <th>الفئة</th>
+                                        <th>الكمية</th>
+                                        <th>الحالة</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in branch_products[:5] %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-2">
+                                                    <i class="bi bi-box text-primary"></i>
+                                                </div>
+                                                <div>
+                                                    <strong>{{ item.product.name }}</strong>
+                                                    <br>
+                                                    <small class="text-muted">{{ item.product.price }} ج.م</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-dark">
+                                                {{ item.product.category.name if item.product.category else 'غير محدد' }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="fw-bold">{{ item.quantity }}</span>
+                                        </td>
+                                        <td>
+                                            {% if item.quantity == 0 %}
+                                                <span class="badge bg-danger">نفذ المخزون</span>
+                                            {% elif item.quantity <= 10 %}
+                                                <span class="badge bg-warning text-dark">مخزون منخفض</span>
+                                            {% else %}
+                                                <span class="badge bg-success">طبيعي</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-box fs-1 text-muted mb-3"></i>
+                            <h5>لا توجد منتجات في الفرع</h5>
+                            <p class="text-muted">لم يتم تسجيل أي منتجات في هذا الفرع بعد</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- الطلبات الحديثة والإشعارات -->
+        <div class="col-lg-4 mb-4">
+            <!-- الطلبات الحديثة -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="bi bi-clock"></i>
+                        الطلبات الحديثة
+                    </h6>
+                    <a href="{{ url_for('branch_dashboard.requests') }}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-eye"></i>
+                        عرض الكل
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if recent_requests %}
+                        {% for request in recent_requests %}
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-cart-plus text-primary"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="fw-bold">{{ request.product.name }}</div>
+                                <div class="text-muted small">
+                                    {{ request.quantity }} قطعة •
+                                    <span class="badge bg-{{ request.get_status_badge_class() }}">
+                                        {{ request.get_status_display() }}
+                                    </span>
+                                </div>
+                                <div class="text-muted small">
+                                    {{ request.requested_at.strftime('%Y-%m-%d %H:%M') }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="bi bi-clock fs-4 text-muted"></i>
+                            <p class="text-muted small mb-0">لا توجد طلبات حديثة</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- الإشعارات -->
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="bi bi-bell"></i>
+                        الإشعارات
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if unread_notifications %}
+                        {% for notification in unread_notifications[:3] %}
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="flex-shrink-0">
+                                <i class="bi {{ notification.get_notification_icon() }} text-{{ notification.get_notification_class() }}"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="fw-bold">{{ notification.title }}</div>
+                                <div class="text-muted small">{{ notification.message[:50] }}...</div>
+                                <div class="text-muted small">
+                                    {{ notification.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="bi bi-bell fs-4 text-muted"></i>
+                            <p class="text-muted small mb-0">لا توجد إشعارات جديدة</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- المنتجات منخفضة المخزون -->
+    {% if low_stock_products %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        تنبيه: منتجات منخفضة المخزون
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>المنتج</th>
+                                    <th>الفئة</th>
+                                    <th>الكمية المتبقية</th>
+                                    <th>الإجراء</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in low_stock_products %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-2">
+                                                <i class="bi bi-box text-warning"></i>
+                                            </div>
+                                            <div>
+                                                <strong>{{ item.product.name }}</strong>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark">
+                                            {{ item.product.category.name if item.product.category else 'غير محدد' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-warning text-dark">{{ item.quantity }}</span>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('branch_dashboard.new_request') }}?product_id={{ item.product.id }}"
+                                           class="btn btn-sm btn-warning">
+                                            <i class="bi bi-cart-plus"></i>
+                                            طلب
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- أزرار الإجراءات السريعة -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div class="btn-group-vertical">
+        <a href="{{ url_for('branch_dashboard.new_request') }}" class="btn btn-primary btn-lg mb-2" title="طلب منتج جديد">
+            <i class="bi bi-plus-circle"></i>
+        </a>
+        <a href="{{ url_for('branch_dashboard.inventory') }}" class="btn btn-info btn-lg mb-2" title="مخزون الفرع">
+            <i class="bi bi-boxes"></i>
+        </a>
+        <a href="{{ url_for('branch_dashboard.requests') }}" class="btn btn-success btn-lg" title="الطلبات">
+            <i class="bi bi-cart"></i>
+        </a>
+    </div>
+</div>
+{% endblock %}

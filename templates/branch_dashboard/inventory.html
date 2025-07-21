@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}مخزون {{ branch.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h1 class="h4 mb-0">
+                <i class="bi bi-boxes text-info"></i>
+                مخزون {{ branch.name }}
+            </h1>
+            <a href="{{ url_for('branch_dashboard.dashboard') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-right"></i> العودة للوحة التحكم
+            </a>
+        </div>
+    </div>
+    <form method="get" class="row g-2 mb-3 align-items-end" id="filter-form">
+        <div class="col-md-3">
+            <label class="form-label">بحث عن منتج</label>
+            <input type="text" name="search" class="form-control" value="{{ search }}" placeholder="اسم المنتج...">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">الصنف</label>
+            <select name="category_id" class="form-select">
+                <option value="">كل الأصناف</option>
+                {% for category in categories %}
+                    <option value="{{ category.id }}" {% if category_id == category.id|string %}selected{% endif %}>{{ category.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">الحالة</label>
+            <select name="status" class="form-select">
+                <option value="">الكل</option>
+                <option value="low_stock" {% if status == 'low_stock' %}selected{% endif %}>مخزون منخفض</option>
+                <option value="out_of_stock" {% if status == 'out_of_stock' %}selected{% endif %}>نفذ المخزون</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary me-2"><i class="bi bi-search"></i> بحث</button>
+            <a href="{{ url_for('branch_dashboard.inventory') }}" class="btn btn-outline-secondary"><i class="bi bi-x"></i> إعادة تعيين</a>
+        </div>
+    </form>
+    <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-info">
+                <i class="bi bi-box"></i> المنتجات في الفرع
+            </h6>
+            <a href="{{ url_for('branch_dashboard.new_request') }}" class="btn btn-success btn-sm">
+                <i class="bi bi-plus-circle"></i> طلب منتج جديد
+            </a>
+        </div>
+        <div class="card-body">
+            {% if products %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>المنتج</th>
+                                <th>الفئة</th>
+                                <th>الكمية</th>
+                                <th>الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in products %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-2">
+                                            <i class="bi bi-box text-info"></i>
+                                        </div>
+                                        <div>
+                                            <strong>{{ item.product.name }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ item.product.price }} ج.م</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark">
+                                        {{ item.product.category.name if item.product.category else 'غير محدد' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="fw-bold">{{ item.quantity }}</span>
+                                </td>
+                                <td>
+                                    {% if item.quantity == 0 %}
+                                        <span class="badge bg-danger">نفذ المخزون</span>
+                                    {% elif item.quantity <= 10 %}
+                                        <span class="badge bg-warning text-dark">مخزون منخفض</span>
+                                    {% else %}
+                                        <span class="badge bg-success">طبيعي</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-box fs-1 text-muted mb-3"></i>
+                    <h5>لا توجد منتجات في الفرع</h5>
+                    <p class="text-muted">لم يتم تسجيل أي منتجات في هذا الفرع بعد</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

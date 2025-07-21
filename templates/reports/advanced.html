@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4" dir="rtl">
+    <h2 class="mb-4 text-center">التقارير والتحليلات المتقدمة</h2>
+    <div class="row mb-4">
+        <div class="col-12">
+            <canvas id="salesChart" height="120"></canvas>
+        </div>
+    </div>
+    <!-- سيتم إضافة المزيد من التقارير هنا لاحقاً -->
+</div>
+<!-- مكتبة Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/reports/api/sales_last_30_days')
+        .then(r => r.json())
+        .then(res => {
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: res.labels,
+                    datasets: [{
+                        label: 'إجمالي المبيعات (آخر 30 يوم)',
+                        data: res.data,
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: true, text: 'مبيعات آخر 30 يوم' }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'اليوم' } },
+                        y: { title: { display: true, text: 'المبيعات (جنيه)' }, beginAtZero: true }
+                    }
+                }
+            });
+        });
+});
+</script>
+{% endblock %}

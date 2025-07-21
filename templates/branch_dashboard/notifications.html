@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}الإشعارات - {{ branch.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h1 class="h4 mb-0">
+                <i class="bi bi-bell text-warning"></i>
+                الإشعارات - {{ branch.name }}
+            </h1>
+            <a href="{{ url_for('branch_dashboard.dashboard') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-right"></i> العودة للوحة التحكم
+            </a>
+        </div>
+    </div>
+    <form method="get" class="row g-2 mb-3 align-items-end" id="filter-form">
+        <div class="col-md-3">
+            <label class="form-label">نوع الإشعار</label>
+            <select name="type" class="form-select">
+                <option value="all" {% if notif_type == 'all' %}selected{% endif %}>الكل</option>
+                <option value="low_stock" {% if notif_type == 'low_stock' %}selected{% endif %}>مخزون منخفض</option>
+                <option value="request" {% if notif_type == 'request' %}selected{% endif %}>طلبات</option>
+                <option value="accepted" {% if notif_type == 'accepted' %}selected{% endif %}>تم القبول</option>
+                <option value="rejected" {% if notif_type == 'rejected' %}selected{% endif %}>تم الرفض</option>
+                <option value="delivered" {% if notif_type == 'delivered' %}selected{% endif %}>تم التوصيل</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">الحالة</label>
+            <select name="status" class="form-select">
+                <option value="all" {% if status == 'all' %}selected{% endif %}>الكل</option>
+                <option value="unread" {% if status == 'unread' %}selected{% endif %}>غير مقروء</option>
+                <option value="read" {% if status == 'read' %}selected{% endif %}>مقروء</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary me-2"><i class="bi bi-search"></i> بحث</button>
+            <a href="{{ url_for('branch_dashboard.notifications') }}" class="btn btn-outline-secondary"><i class="bi bi-x"></i> إعادة تعيين</a>
+        </div>
+    </form>
+    <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-warning">
+                <i class="bi bi-bell"></i> جميع الإشعارات
+            </h6>
+            <form method="post" action="{{ url_for('branch_dashboard.mark_all_read') }}" style="display:inline-block;">
+                <button type="submit" class="btn btn-outline-success btn-sm"><i class="bi bi-check2-all"></i> تأشير الكل كمقروء</button>
+            </form>
+        </div>
+        <div class="card-body">
+            {% if notifications %}
+                <ul class="list-group list-group-flush">
+                    {% for notif in notifications %}
+                    <li class="list-group-item d-flex align-items-center {% if not notif.is_read %}bg-light{% endif %}">
+                        <div class="me-3">
+                            <i class="bi {{ notif.get_notification_icon() }} fs-3 text-{{ notif.get_notification_class() }}"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="fw-bold">
+                                {{ notif.title }}
+                                {% if notif.is_urgent %}<span class="badge bg-danger ms-2">هام</span>{% endif %}
+                            </div>
+                            <div class="text-muted small">{{ notif.message }}</div>
+                            <div class="text-muted small">
+                                <i class="bi bi-clock"></i> {{ notif.created_at.strftime('%Y-%m-%d %H:%M') }}
+                            </div>
+                        </div>
+                        <div class="ms-3">
+                            {% if not notif.is_read %}
+                                <form method="post" action="{{ url_for('branch_dashboard.mark_read', notif_id=notif.id) }}" style="display:inline-block;">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-check2"></i> مقروء</button>
+                                </form>
+                            {% else %}
+                                <span class="badge bg-success">مقروء</span>
+                            {% endif %}
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-bell fs-1 text-muted mb-3"></i>
+                    <h5>لا توجد إشعارات</h5>
+                    <p class="text-muted">جميع الإشعارات ستظهر هنا فور حدوثها</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

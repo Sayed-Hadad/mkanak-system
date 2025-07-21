@@ -1,0 +1,255 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container" dir="rtl">
+    <!-- رأس الصفحة -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="mb-1">حذف منتج من الفرع</h3>
+            <p class="text-muted mb-0">حذف منتج من فرع "{{ branch.name }}"</p>
+        </div>
+        <a href="{{ url_for('branches.branch_details', branch_id=branch.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-right"></i> العودة لتفاصيل الفرع
+        </a>
+    </div>
+
+    <!-- تنبيه للمدير -->
+    {% if current_user.is_admin() %}
+    <div class="alert alert-warning mb-4">
+        <i class="bi bi-exclamation-triangle"></i>
+        <strong>تنبيه:</strong> عند حذف منتج من الفرع، سيتم إنشاء حركة إخراج وإرجاع المنتج للمخزن الرئيسي.
+    </div>
+    {% endif %}
+
+    <!-- نموذج حذف المنتج -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">
+                        <i class="bi bi-trash"></i> حذف منتج من الفرع
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="removeProductForm">
+                        <!-- اختيار المنتج -->
+                        <div class="mb-3">
+                            <label for="product_id" class="form-label fw-bold">المنتج</label>
+                            <select name="product_id" id="product_id" class="form-select" required>
+                                <option value="">اختر المنتج</option>
+                                {% for item in branch_products %}
+                                <option value="{{ item.product.id }}" data-quantity="{{ item.quantity }}" data-price="{{ item.product.price }}">
+                                    {{ item.product.name }} - الكمية المتوفرة: {{ item.quantity }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- الكمية -->
+                        <div class="mb-3">
+                            <label for="quantity" class="form-label fw-bold">الكمية المراد حذفها</label>
+                            <input type="number" name="quantity" id="quantity" class="form-control" min="1" required>
+                            <div class="form-text">
+                                الكمية المتوفرة: <span id="availableQuantity" class="fw-bold text-success">-</span>
+                            </div>
+                        </div>
+
+                        <!-- ملاحظات -->
+                        <div class="mb-3">
+                            <label for="notes" class="form-label fw-bold">ملاحظات (اختياري)</label>
+                            <textarea name="notes" id="notes" class="form-control" rows="3" placeholder="سبب الحذف أو ملاحظات إضافية..."></textarea>
+                        </div>
+
+                        <!-- أزرار التحكم -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash"></i> حذف المنتج
+                            </button>
+                            <a href="{{ url_for('branches.branch_details', branch_id=branch.id) }}" class="btn btn-outline-secondary">
+                                إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- معلومات الفرع -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle"></i> معلومات الفرع
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>اسم الفرع:</strong>
+                        <p class="text-muted">{{ branch.name }}</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <strong>عدد المنتجات:</strong>
+                        <p class="text-muted">{{ branch_products|length }} منتج</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <strong>إجمالي قيمة المخزون:</strong>
+                        <p class="text-success fw-bold">{{ "{:,.0f}".format(branch.get_total_stock_value()) }} ريال</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- المنتجات المتوفرة -->
+            <div class="card border-0 shadow-sm mt-3">
+                <div class="card-header bg-white border-0">
+                    <h6 class="mb-0">
+                        <i class="bi bi-box"></i> المنتجات المتوفرة
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for item in branch_products %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ item.product.name }}</strong>
+                                <br>
+                                <small class="text-muted">{{ item.product.category.name if item.product.category else 'غير محدد' }}</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-primary">{{ item.quantity }}</span>
+                                <br>
+                                <small class="text-muted">{{ "{:,.0f}".format(item.product.price * item.quantity) }} ريال</small>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="list-group-item text-center text-muted">
+                            لا توجد منتجات في هذا الفرع
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+<style>
+.card {
+    border-radius: 12px;
+    border: none;
+}
+
+.form-label {
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+
+.form-select, .form-control {
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.form-select:focus, .form-control:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.list-group-item {
+    border: none;
+    padding: 12px 16px;
+}
+
+.list-group-item:not(:last-child) {
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.badge {
+    font-size: 12px;
+    padding: 6px 12px;
+}
+</style>
+
+<script>
+// منع تكرار الأحداث
+let isInitialized = false;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // منع التهيئة المتكررة
+    if (isInitialized) return;
+    isInitialized = true;
+
+    const productSelect = document.getElementById('product_id');
+    const quantityInput = document.getElementById('quantity');
+    const availableQuantitySpan = document.getElementById('availableQuantity');
+    const removeForm = document.getElementById('removeProductForm');
+
+    // إزالة أي مستمعي أحداث سابقين
+    productSelect.removeEventListener('change', updateQuantity);
+    removeForm.removeEventListener('submit', validateForm);
+
+    // تحديث الكمية المتوفرة عند اختيار المنتج
+    function updateQuantity() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (selectedOption && selectedOption.value) {
+            const availableQuantity = selectedOption.dataset.quantity;
+            availableQuantitySpan.textContent = availableQuantity;
+            quantityInput.max = availableQuantity;
+            quantityInput.placeholder = `أقصى كمية: ${availableQuantity}`;
+            quantityInput.value = ''; // مسح القيمة السابقة
+        } else {
+            availableQuantitySpan.textContent = '-';
+            quantityInput.max = '';
+            quantityInput.placeholder = '';
+            quantityInput.value = '';
+        }
+    }
+
+    // التحقق من الكمية قبل الإرسال
+    function validateForm(e) {
+        const selectedOption = productSelect.options[productSelect.selectedIndex];
+
+        if (!selectedOption || !selectedOption.value) {
+            e.preventDefault();
+            alert('يرجى اختيار منتج أولاً');
+            return false;
+        }
+
+        const quantity = parseInt(quantityInput.value);
+        const availableQuantity = parseInt(selectedOption.dataset.quantity);
+
+        if (isNaN(quantity) || quantity <= 0) {
+            e.preventDefault();
+            alert('يجب أن تكون الكمية أكبر من صفر');
+            return false;
+        }
+
+        if (quantity > availableQuantity) {
+            e.preventDefault();
+            alert(`الكمية المدخلة (${quantity}) أكبر من الكمية المتوفرة (${availableQuantity})`);
+            return false;
+        }
+
+        // تأكيد الحذف
+        if (!confirm(`هل أنت متأكد من حذف ${quantity} من المنتج المحدد؟`)) {
+            e.preventDefault();
+            return false;
+        }
+    }
+
+    // إضافة مستمعي الأحداث
+    productSelect.addEventListener('change', updateQuantity);
+    removeForm.addEventListener('submit', validateForm);
+
+    // تهيئة القيم الأولية
+    updateQuantity.call(productSelect);
+});
+</script>
+{% endblock %}
